@@ -6,6 +6,7 @@ examples
 *.swp
 *.swo
 .project
+.settings
 coverage/
 
 .idea/

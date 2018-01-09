@@ -62,7 +62,7 @@ module.exports = {
             { test: /\.json$/, loader: 'json'},
             { test: /\.js$/, exclude: /node_modules/, loader: 'babel'},
             { test: /\.scss$/, exclude: /node_modules/, loader: ExtractTextPlugin.extract('style', 'css?sourceMap!sass') },
-            { test: /\.(png|jpg|ico)$/, exclude: /node_modules/, loader: 'file-loader?name=images/[name].[ext]&context=./src/images' }
+            { test: /\.(png|svg|jpg|ico)$/, exclude: /node_modules/, loader: 'file-loader?name=images/[name].[ext]&context=./src/images' }
         ]
     },
 

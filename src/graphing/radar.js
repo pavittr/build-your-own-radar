@@ -389,7 +389,7 @@ const Radar = function (size, radar) {
 
 		header.append('div')
 	        .attr('class', 'radar-logo')
-	        .html('<a href="https://www.uk.capgemini.com"><img src="/images/capgemini-logo.png" / ></a>');
+	        .html('<a href="https://www.uk.capgemini.com"><img src="/images/capgemini-logo-new.svg" / ></a>');
 	    
 		header.append('div')
 			.attr('class', 'radar-title')

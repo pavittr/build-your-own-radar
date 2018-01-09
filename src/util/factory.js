@@ -188,7 +188,7 @@ const GoogleSheetInput = function () {
 function plotLogo(content) {
     content.append('div')
         .attr('class', 'input-sheet__logo')
-        .html('<a href="https://www.uk.capgemini.com"><img src="/images/capgemini-logo.png" / ></a>');
+        .html('<a href="https://www.uk.capgemini.com"><img src="/images/capgemini-logo-new.svg" / ></a>');
 }
 
 function plotBanner(content, text) {
