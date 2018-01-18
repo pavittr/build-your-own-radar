@@ -332,7 +332,6 @@ const Radar = function (size, radar) {
       .classed('full-view', true);
 
     d3.selectAll('.quadrant-table').classed('selected', false);
-    d3.selectAll('.home-link').classed('selected', false);
 
     d3.selectAll('.quadrant-group')
       .transition()
@@ -433,7 +432,6 @@ const Radar = function (size, radar) {
   }
 
   function selectQuadrant(order, startAngle) {
-    d3.selectAll('.home-link').classed('selected', false);
 
     d3.selectAll('.button').classed('selected', false).classed('full-view', false);
     d3.selectAll('.button.' + order).classed('selected', true);
