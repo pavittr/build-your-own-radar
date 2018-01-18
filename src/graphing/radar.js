@@ -433,7 +433,7 @@ const Radar = function (size, radar) {
     title.append('a')
       .classed('about-radar button no-capitalize', true)
       .text('About')
-      .attr('href', "https://capgemini-psdu.atlassian.net/wiki/display/TR/Tech+Radar+Home");
+      .attr('href', "https://adc-confluence.uk.capgemini.com/display/PSD/Tech+Radar");
 
   }
 
