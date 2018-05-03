@@ -1,28 +1,31 @@
 const SheetNotFoundError = require('../../src/exceptions/sheetNotFoundError');
 const ExceptionMessages = require('./exceptionMessages');
 
-const Sheet = function (sheetReference) {
+const Github = function (blipRoot) {
     var self = {};
 
-    (function () {
-        var matches = sheetReference.match("https:\\/\\/docs.google.com\\/spreadsheets\\/d\\/(.*?)($|\\/$|\\/.*|\\?.*)");
-        self.id = matches !== null ? matches[1] : sheetReference;
-    })();
-
     self.exists = function (callback) {
-        var feedURL = "https://spreadsheets.google.com/feeds/worksheets/" + self.id + "/public/basic?alt=json";
+
+
+
+  
+
+
+
 
         // TODO: Move this out (as HTTPClient)
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', feedURL, true);
+        xhr.open('GET', "/data.json", true);
         xhr.onreadystatechange = function () {
             if (xhr.readyState === 4) {
                 if (xhr.status === 200) {
                     console.log("All is good");
                     console.log(callback);
-                    return callback();
+
+                    var blips = JSON.parse(this.responseText);
+                    return callback(blips);
                 } else {
-                    return callback(new SheetNotFoundError(ExceptionMessages.SHEET_NOT_FOUND));
+                    return callback([], new SheetNotFoundError(ExceptionMessages.SHEET_NOT_FOUND));
                 }
             }
         };
@@ -32,4 +35,4 @@ const Sheet = function (sheetReference) {
     return self;
 };
 
-module.exports = Sheet;
+module.exports = Github;

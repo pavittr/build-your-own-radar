@@ -17,10 +17,63 @@ const MalformedDataError = require('../exceptions/malformedDataError');
 const SheetNotFoundError = require('../exceptions/sheetNotFoundError');
 const ContentValidator = require('./contentValidator');
 const Sheet = require('./sheet');
+const Github = require('./gh');
 const ExceptionMessages = require('./exceptionMessages');
 
 //const GoogleDocsKey = "1d2ymWrAS2gRqK9MCixWjc5XHFLlIk7abb7PcQ5nEog0";//Phil Tann test key
 const GoogleDocsKey = "1_RAVpdvXinxgqxC_vwY4JtHC2NSiXuP38u-33Hffukw";
+
+
+const DataGrapher = function () {
+    var self = {};
+    self.graph = function(blips) {
+
+        
+        d3.selectAll(".loading").remove();
+
+        var rings = _.map(_.uniqBy(blips, 'ring'), 'ring');
+        var ringMap = {};
+        var maxRings = 5;
+
+        _.each(rings, function (ringName, i) {
+            if (i == maxRings) {
+                throw new MalformedDataError(ExceptionMessages.TOO_MANY_RINGS);
+            }
+            ringMap[ringName] = new Ring(ringName, i);
+        });
+
+        var quadrants = {};
+        _.each(blips, function (blip) {
+            if (!quadrants[blip.quadrant]) {
+                quadrants[blip.quadrant] = new Quadrant(_.capitalize(blip.quadrant));
+            }
+            var capability = undefined;
+            if (blip.capability == 'good') {
+                capability = true;
+            }
+            else if (blip.capability == 'poor') {
+                capability = false;
+            }
+
+            quadrants[blip.quadrant].add(new Blip(blip.name, ringMap[blip.ring], capability, blip.topic, blip.description))
+        });
+
+        var radar = new Radar();
+        _.each(quadrants, function (quadrant) {
+            radar.addQuadrant(quadrant)
+        });
+
+        var size = (window.innerHeight - 133) < 750 ? 750 : window.innerHeight - 133;
+
+        new GraphingRadar(size, radar).init().plot();
+
+
+        
+    }
+
+    return self;
+}
+
 
 const GoogleSheet = function (sheetReference, sheetName) {
     var self = {};
@@ -76,47 +129,17 @@ const GoogleSheet = function (sheetReference, sheetName) {
                 contentValidator.verifyHeaders();
 
                 var all = tabletop.sheets(sheetName).all();
+                // TODO this seems to be the best point to jump in
+                // map is getting all the elements and passing them
+                // through the sanitze command.
+                // So we can say that blips is a fairly clean array
                 var blips = _.map(all, new InputSanitizer().sanitize);
 
                 document.title = tabletop.googleSheetName;
-                d3.selectAll(".loading").remove();
 
-                var rings = _.map(_.uniqBy(blips, 'ring'), 'ring');
-                var ringMap = {};
-                var maxRings = 5;
-
-                _.each(rings, function (ringName, i) {
-                    if (i == maxRings) {
-                        throw new MalformedDataError(ExceptionMessages.TOO_MANY_RINGS);
-                    }
-                    ringMap[ringName] = new Ring(ringName, i);
-                });
-
-                var quadrants = {};
-                _.each(blips, function (blip) {
-                    if (!quadrants[blip.quadrant]) {
-                        quadrants[blip.quadrant] = new Quadrant(_.capitalize(blip.quadrant));
-                    }
-                    var capability = undefined;
-                    if (blip.capability == 'good') {
-                    	capability = true;
-                    }
-                    else if (blip.capability == 'poor') {
-                    	capability = false;
-                    }
-
-                    quadrants[blip.quadrant].add(new Blip(blip.name, ringMap[blip.ring], capability, blip.topic, blip.description))
-                });
-
-                var radar = new Radar();
-                _.each(quadrants, function (quadrant) {
-                    radar.addQuadrant(quadrant)
-                });
-
-                var size = (window.innerHeight - 133) < 750 ? 750 : window.innerHeight - 133;
-
-                new GraphingRadar(size, radar).init().plot();
-
+                grapher = new DataGrapher();
+                grapher.graph(blips);
+                
             } catch (exception) {
                 displayErrorMessage(exception);
             }
@@ -156,6 +179,25 @@ var QueryParams = function (queryString) {
     return queryParams
 };
 
+const ShinyDataStruct = function () {
+    var self = {};
+
+    self.build = function() {
+        var gh = new Github();
+        gh.exists(function (blips, notFound) {
+            if (notFound) {
+                console.log("Error");
+                console.log(notFound);
+                return;
+            }
+
+            grapher = new DataGrapher();
+            grapher.graph(blips);
+        });
+    }
+
+    return self;
+}
 
 const GoogleSheetInput = function () {
     var self = {};
@@ -177,8 +219,8 @@ const GoogleSheetInput = function () {
 
 
         } else {
-            var sheet = GoogleSheet("https://docs.google.com/spreadsheets/d/" + GoogleDocsKey + "/", queryParams.sheetName);
-            sheet.init().build();
+            var data = ShinyDataStruct();
+            data.build();
         }
     };
 
