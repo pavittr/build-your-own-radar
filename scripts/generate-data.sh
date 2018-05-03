@@ -27,14 +27,14 @@ do
     CAPABILITY=`echo $OBJ | jq -r .capability`
     DESC=`echo $OBJ | jq -r .description`
     cat <<EOF  > $OUTPUT_FOLDER/$URL_ENCODED_QUADRANT/$URL_ENCODED_NAME.md
+---
+name: $name
+ring: $RING
+quadrant: $QUADRANT
+capability: $CAPABILITY
+---
 # $name
-## Ring
-$RING
-## Quadrant
-$QUADRANT
-## Capability
-$CAPABILITY
-## Description
+
 $DESC
 EOF
   
