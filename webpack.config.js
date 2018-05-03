@@ -45,11 +45,12 @@ if (isProd) {
 module.exports = {
     entry: entry,
 
-   node: {
-    fs: "empty",
-    tls:"empty",
-    net:"empty"
-   },
+    node: {
+        fs: 'empty',
+        net: 'empty',
+        tls: 'empty',
+        child_process: 'empty'
+    },
 
     output: {
         path: buildPath,
