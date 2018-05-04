@@ -18,8 +18,6 @@ const Sheet = function (sheetReference) {
         xhr.onreadystatechange = function () {
             if (xhr.readyState === 4) {
                 if (xhr.status === 200) {
-                    console.log("All is good");
-                    console.log(callback);
                     return callback();
                 } else {
                     return callback(new DataSourceNotFoundError(ExceptionMessages.SHEET_NOT_FOUND));

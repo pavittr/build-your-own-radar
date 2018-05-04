@@ -120,10 +120,6 @@ const GoogleSheet = function (sheetReference, sheetName) {
                 contentValidator.verifyHeaders();
 
                 var all = tabletop.sheets(sheetName).all();
-                // TODO this seems to be the best point to jump in
-                // map is getting all the elements and passing them
-                // through the sanitze command.
-                // So we can say that blips is a fairly clean array
                 var blips = _.map(all, new InputSanitizer().sanitize);
 
                 document.title = tabletop.googleSheetName;
