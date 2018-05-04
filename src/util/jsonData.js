@@ -1,31 +1,22 @@
-const SheetNotFoundError = require('../../src/exceptions/sheetNotFoundError');
+const DataSourceNotFoundError = require('../../src/exceptions/dataSourceNotFoundError');
 const ExceptionMessages = require('./exceptionMessages');
 
-const Github = function (blipRoot) {
+const JsonData = function (blipRoot) {
     var self = {};
 
     self.exists = function (callback) {
 
-
-
-  
-
-
-
-
+        var dataSource = "/data.json";
         // TODO: Move this out (as HTTPClient)
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', "/data.json", true);
+        xhr.open('GET', dataSource, true);
         xhr.onreadystatechange = function () {
             if (xhr.readyState === 4) {
                 if (xhr.status === 200) {
-                    console.log("All is good");
-                    console.log(callback);
-
                     var blips = JSON.parse(this.responseText);
                     return callback(blips);
                 } else {
-                    return callback([], new SheetNotFoundError(ExceptionMessages.SHEET_NOT_FOUND));
+                    return callback([], new DataSourceNotFoundError(ExceptionMessages.JSON_DATA_NOT_FOUND, dataSource));
                 }
             }
         };
@@ -35,4 +26,4 @@ const Github = function (blipRoot) {
     return self;
 };
 
-module.exports = Github;
+module.exports = JsonData;
