@@ -150,3 +150,28 @@ sudo start techradar
 sudo stop techradar
 sudo restart techradar
 ```
+
+### Re-deploying the application on AWS
+
+To re-deploy the app you will need to log onto the EC2 instance on which the TechRadar app is deployed. To do this you'll need a copy of the SSH key. This is available from the PSDDO leadership team who store it in a secure area of Confluence.
+
+You'll also need to ensure that you are connected to a network that has SSH access to the EC2 instance. The EC2 instance sits inside a protected web DMZ security group that limits access to known IP address. The outbound IP addresses of certain Capgemini offices and the Capgemini corp VPN are included in the white list.
+
+Next, ensure the correct permissions on the key file and then SSH into the EC2 instance:
+
+```
+chmod 400 ToolingEC2Key.pem
+ssh -i "ToolingEC2Key.pem" ec2-user@ec2-35-177-235-50.eu-west-2.compute.amazonaws.com
+```
+
+Note: the EC2 instance's public DNS in the above command is correct at time of writing. The PSDDO leadership team have access to the AWS console and can provide the latest details if this changes.
+
+To re-deploy the app simply pull the latest code from GitHub and restart the TechRadar's OS service:
+
+```
+cd build-your-own-radar
+git pull
+sudo restart techradar
+```
+
+Finally validate that the TechRadar is running correctly with the updates at: http://techradar.capgemini-psdu.com/
