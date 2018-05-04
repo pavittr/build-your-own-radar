@@ -14,13 +14,59 @@ const Ring = require('../models/ring');
 const Blip = require('../models/blip');
 const GraphingRadar = require('../graphing/radar');
 const MalformedDataError = require('../exceptions/malformedDataError');
-const SheetNotFoundError = require('../exceptions/sheetNotFoundError');
+const DataSourceNotFoundError = require('../exceptions/dataSourceNotFoundError');
 const ContentValidator = require('./contentValidator');
 const Sheet = require('./sheet');
+const JsonData = require('./jsonData');
 const ExceptionMessages = require('./exceptionMessages');
 
-//const GoogleDocsKey = "1d2ymWrAS2gRqK9MCixWjc5XHFLlIk7abb7PcQ5nEog0";//Phil Tann test key
 const GoogleDocsKey = "1_RAVpdvXinxgqxC_vwY4JtHC2NSiXuP38u-33Hffukw";
+
+const DataGrapher = function () {
+    var self = {};
+    self.graph = function(blips) {
+        
+        d3.selectAll(".loading").remove();
+
+        var rings = _.map(_.uniqBy(blips, 'ring'), 'ring');
+        var ringMap = {};
+        var maxRings = 5;
+
+        _.each(rings, function (ringName, i) {
+            if (i == maxRings) {
+                throw new MalformedDataError(ExceptionMessages.TOO_MANY_RINGS);
+            }
+            ringMap[ringName] = new Ring(ringName, i);
+        });
+
+        var quadrants = {};
+        _.each(blips, function (blip) {
+            if (!quadrants[blip.quadrant]) {
+                quadrants[blip.quadrant] = new Quadrant(_.capitalize(blip.quadrant));
+            }
+            var capability = undefined;
+            if (blip.capability == 'good') {
+                capability = true;
+            }
+            else if (blip.capability == 'poor') {
+                capability = false;
+            }
+
+            quadrants[blip.quadrant].add(new Blip(blip.name, ringMap[blip.ring], capability, blip.topic, blip.description))
+        });
+
+        var radar = new Radar();
+        _.each(quadrants, function (quadrant) {
+            radar.addQuadrant(quadrant)
+        });
+
+        var size = (window.innerHeight - 133) < 750 ? 750 : window.innerHeight - 133;
+
+        new GraphingRadar(size, radar).init().plot();
+    }
+
+    return self;
+}
 
 const GoogleSheet = function (sheetReference, sheetName) {
     var self = {};
@@ -45,7 +91,7 @@ const GoogleSheet = function (sheetReference, sheetName) {
 
             if (exception instanceof MalformedDataError) {
                 message = message.concat(exception.message);
-            } else if (exception instanceof SheetNotFoundError) {
+            } else if (exception instanceof DataSourceNotFoundError) {
                 message = exception.message;
             } else {
                 console.error(exception);
@@ -63,9 +109,7 @@ const GoogleSheet = function (sheetReference, sheetName) {
         }
 
         function createRadar(__, tabletop) {
-
             try {
-
                 if (!sheetName) {
                     sheetName = tabletop.foundSheetNames[0];
                 }
@@ -79,44 +123,10 @@ const GoogleSheet = function (sheetReference, sheetName) {
                 var blips = _.map(all, new InputSanitizer().sanitize);
 
                 document.title = tabletop.googleSheetName;
-                d3.selectAll(".loading").remove();
 
-                var rings = _.map(_.uniqBy(blips, 'ring'), 'ring');
-                var ringMap = {};
-                var maxRings = 5;
-
-                _.each(rings, function (ringName, i) {
-                    if (i == maxRings) {
-                        throw new MalformedDataError(ExceptionMessages.TOO_MANY_RINGS);
-                    }
-                    ringMap[ringName] = new Ring(ringName, i);
-                });
-
-                var quadrants = {};
-                _.each(blips, function (blip) {
-                    if (!quadrants[blip.quadrant]) {
-                        quadrants[blip.quadrant] = new Quadrant(_.capitalize(blip.quadrant));
-                    }
-                    var capability = undefined;
-                    if (blip.capability == 'good') {
-                    	capability = true;
-                    }
-                    else if (blip.capability == 'poor') {
-                    	capability = false;
-                    }
-
-                    quadrants[blip.quadrant].add(new Blip(blip.name, ringMap[blip.ring], capability, blip.topic, blip.description))
-                });
-
-                var radar = new Radar();
-                _.each(quadrants, function (quadrant) {
-                    radar.addQuadrant(quadrant)
-                });
-
-                var size = (window.innerHeight - 133) < 750 ? 750 : window.innerHeight - 133;
-
-                new GraphingRadar(size, radar).init().plot();
-
+                grapher = new DataGrapher();
+                grapher.graph(blips);
+                
             } catch (exception) {
                 displayErrorMessage(exception);
             }
@@ -156,8 +166,51 @@ var QueryParams = function (queryString) {
     return queryParams
 };
 
+const JsonDataLoader = function () {
+    var self = {};
 
-const GoogleSheetInput = function () {
+    self.build = function() {
+        var jd = new JsonData();
+        jd.exists(function (blips, errorFetchingData) {
+            if (errorFetchingData) {
+                displayErrorMessage(errorFetchingData);
+                return;
+            }
+
+            document.title = "Public Sector Digital - Tech Radar";
+            grapher = new DataGrapher();
+            grapher.graph(blips);
+        });
+    }
+
+    function displayErrorMessage(exception) {
+        d3.selectAll(".loading").remove();
+        var message = 'Oops! It seems like there are some problems with loading your data. ';
+
+        if (exception instanceof MalformedDataError) {
+            message = message.concat(exception.message);
+        } else if (exception instanceof DataSourceNotFoundError) {
+            message = exception.message;
+            message = message.concat("<br />Data source is ", exception.dataSource);
+        } else {
+            console.error(exception);
+        }
+
+        message = message.concat('<br/>', 'Please check <a href="https://info.thoughtworks.com/visualize-your-tech-strategy-guide.html#faq">FAQs</a> for possible solutions.');
+
+        d3.select('body')
+            .append('div')
+            .attr('class', 'error-container')
+            .append('div')
+            .attr('class', 'error-container__message')
+            .append('p')
+            .html(message);
+    }
+
+    return self;
+}
+
+const DataInput = function () {
     var self = {};
 
     self.build = function () {
@@ -172,16 +225,12 @@ const GoogleSheetInput = function () {
                 .attr('class', 'input-sheet');
 
             plotLogo(content);
-
             plotForm(content);
-
-
         } else {
-            var sheet = GoogleSheet("https://docs.google.com/spreadsheets/d/" + GoogleDocsKey + "/", queryParams.sheetName);
-            sheet.init().build();
+            var data = JsonDataLoader();
+            data.build();
         }
     };
-
     return self;
 };
 
@@ -221,4 +270,4 @@ function plotForm(content) {
     form.append('p').html("<a href='https://info.thoughtworks.com/visualize-your-tech-strategy-guide.html#faq'>Need help?</a>");
 }
 
-module.exports = GoogleSheetInput;
+module.exports = DataInput;
