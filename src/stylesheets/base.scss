@@ -6,10 +6,10 @@
 @import 'header';
 @import 'footer';
 
-@import url(https://www.thoughtworks.com/css/screen.css);
+@import 'screen';
 
 body {
-  font: 18px 'Open Sans';
+  font: 18px 'ubuntu';
   -webkit-font-smoothing: antialiased;
   margin: 0;
 }
