@@ -365,7 +365,8 @@ const Radar = function (size, radar) {
 	}
 
 	function plotRadarHeader() {
-		var header = d3.select('body').insert('header', "#radar");
+		var header = d3.select('body').insert('header', "#radar").append('div').style("margin", "auto").style("display", "table");
+
 
 		header.append('div')
 	        .attr('class', 'radar-logo')
