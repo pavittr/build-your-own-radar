@@ -5,4 +5,5 @@ require('./images/radar_legend_v0.1.png');
 
 const DataInput = require('./util/factory');
 
+
 DataInput().build();

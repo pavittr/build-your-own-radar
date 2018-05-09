@@ -2,11 +2,12 @@
 
 const webpack = require('webpack');
 const path = require('path');
-const buildPath = path.join(__dirname, './_blips');
+const buildPath = path.join(__dirname, './dist');
 const args = require('yargs').argv;
 
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 let isProd = args.prod;
 let isDev = args.dev;
@@ -25,7 +26,8 @@ let plugins = [
         template: './src/index.html',
         inject: 'body',
         chunks: 'app'
-    })
+    }),
+    new CopyWebpackPlugin(['_blips/data.json'], {})
 ];
 
 if (isProd) {
