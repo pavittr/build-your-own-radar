@@ -4,48 +4,31 @@ A library that generates an interactive radar, inspired by [thoughtworks.com/rad
 
 ## How To Use
 
-The easiest way to use the app out of the box is to provide a *public* (can be read-only) Google Sheet ID from which all the data will be fetched.
-
-The data must conform to the format below for the radar to be generated correctly.
+Data is loaded from the data.json file located inside the repo, so to update contents you need to update that file.
 
 ### Setting up your data
 
-You need to make your data public in a form we can digest.
+The data is stored in a JSON file in the `_blips` directory. The data structure is of the form:
 
-Create a Google Sheet. Give it at least the below column headers, and put in the content that you want:
+```
+[
+  {
+    "name": "Apache HTTP server",
+    "ring": "deprecate",
+    "quadrant": "platforms",
+    "capability": "good",
+    "description": "Still the most widely used web server on the internet but there is good evidence that it is significantly less performant than newer alternatives such as Nginx for serving static content (thread-based execution model). Most departments are now using Nginx/other for new deployments.\n<br/><br/>Demand from: <ul><li><strong>HO</strong> - DTP</li></ul>"
+  }
+]
+```
 
-| name          | ring       | quadrant               | skills   | description                                             |
-|---------------|------------|------------------------|----------|---------------------------------------------------------|
-| Composer      | adopt      | tools                  | good     | Although the idea of dependency management ...          |
-| Canary builds | deprecate  | techniques             | poor     | Many projects have external code dependencies ...       |
-| Apache Kylin  | core       | platforms              | average  | Apache Kylin is an open source analytics solution ...   |
-| JSF           | evaluate   | languages & frameworks | poor     | We continue to see teams run into trouble using JSF ... |
+Updates to data in this folder will show live once pushed to master through the CI/CD pipeline.
 
-Note: the quadrants of the radar, and the order of the rings inside the radar will be drawn in the order they appear in your Google Sheet.
-
-### Sharing the sheet
-
-* In Google sheets, go to 'File', choose 'Publish to the web...' and then click 'Publish'.
-* Close the 'Publish to the web' dialog.
-* Copy the URL of your editable sheet from the browser (Don't worry, this does not share the editable version). 
-
-The URL will be similar to [https://docs.google.com/spreadsheets/d/1_RAVpdvXinxgqxC_vwY4JtHC2NSiXuP38u-33Hffukw/edit](https://docs.google.com/spreadsheets/d/1_RAVpdvXinxgqxC_vwY4JtHC2NSiXuP38u-33Hffukw/edit).
-
-### Configuring the radar to use your sheet
-
-The easiest way to use the radar is to hard code the Google Sheet link in /src/util/factory.js
-
-Then when you run the radar and access it at e.g. http://techradar.capgemini-psdu.com the application will use that default.
-
-Alternatively there is a 'select page' that allows you to specify an alternative sheet by entering the link via the radar's UI. That page is accessed at e.g. http://techradar.capgemini-psdu.com?select=true
-
-### More complex sheet interaction
-
-The app uses [Tabletop.js](https://github.com/jsoma/tabletop) to fetch the data from a Google Sheet, so refer to their documentation for more advanced interaction.  The input from the Google Sheet is sanitized by whitelisting HTML tags with [sanitize-html](https://github.com/punkave/sanitize-html).
+Note: the quadrants of the radar, and the order of the rings inside the radar will be drawn based on the order they appear in the JSON data.
 
 The application uses [webpack](https://webpack.github.io/) to package dependencies and minify all .js and .scss files.
 
-### Running the application
+### Running the application in development
 
 ```
 git clone git@github.com:capgemini-psdu/build-your-own-radar.git
@@ -54,7 +37,7 @@ npm test
 npm run dev
 ```
 
-The application will listen on localhost:8080. This will also watch the .js and .css files and rebuild on file changes.
+The application uses webpack-dev-server to listen on localhost:8080. This will also watch the .js and .css files and rebuild on file changes.
 
 ### Don't want to install node? Run with one line docker
 
@@ -68,110 +51,43 @@ Pull requests are welcome; please write tests whenever possible.
 
 ## Run on AWS
 
-This section describes to manual process to set this up. We will automate this process at some point.
+The production service runs by hosting the built files in an S3 bucket. This is updated on pushes to master using a Travis deploy integration.
 
 ### Set up the necessary AWS infra
 
-#### Create a virtual machine
+The app is currently deployed via an Amazon S3 bucket configured for web hosting. This may change as server side content is added.
 
-A t2.micro EC2 instance running AWS Linux is sufficient.
+#### Create an S3 bucket
 
-#### Create a security group
+Remember that, if you plan on redirecting requests from a DNS entry via AWS Route 53, then the name of the bucket must match the DNS entry you intend to serve from.
 
-We recommend a Web DMZ type zone that allows HTTP/S from anywhere, SSH from your office locations and all other TCP traffic from elsewhere in the zone.
+#### S3 Bucket Policy
 
-Add the EC2 instance to this group.
-
-#### Create an elastic load balancer
-
-This is necesary for two reasons.
-
-Firstly, as the application listens on port 8080, we need to translate traffic from the default HTTP/S ports 80/443.
-
-Secondly, it allows us to spin up/down the EC2 instance without affecting the public IP of the service.
-
-- Create a new Target Group pointed at the EC2 instance and port 8080 (the ELB will translate from port 80 to the port 8080 that the app runs on)
-- Create a new ELB and select the Target Group you just created
-- Add the ELB to your Web DMZ security group
-
-#### Prepare the EC2 instance to run your application
-
-We need to install git and npm.
-
-SSH to the machine and install git:
-
-`yum install git`
-
-Create a new SSH key pair and add the public key to your GitHub account in the usual way.
-
-Next install npm. See https://nodejs.org/en/download/package-manager/ for details of how to do this on AWS Linux.
-
-### Deploying the application
-
-You should now be able to pull the project code and run the application:
+The S3 bucket must be configured with a GetObject security policy matching the one below:
 
 ```
-git clone git@github.com:capgemini-psdu/build-your-own-radar.git
-cd build-your-own-radar
-npm install
-npm run dev
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::<BUCKET_NAME_GOES_HERE>/*"
+        }
+    ]
+}
 ```
 
-Test that all works as expected via the ELB public DNS
+### Configuring Travis
 
-### Installing the application as an OS service
+The Travis S3 integration requires the following properties:
 
-We recommend that you configure the application to run via upstart so that it automatically restarts after e.g. the EC2 instance is rebooted.
+- S3 bucket name - set in .travis.yaml
+- Access key ID - set as an evironment variable in the build as `AWS_ACCESS_KEY_ID`
+- Access key Secret - set as an environment variable in the build as `AWS_ACCESS_KEY_SECRET`
 
-Create the upstart job configuration:
+Be sure to check that the region is also set correctly.
 
-`sudo vi /etc/init/techradar.conf`
-
-Example contents for this file are supplied below:
-
-```
-description "techradar"
-
-start on (runlevel [345] and started network)
-stop on (runlevel [!345] and stopping network)
-
-respawn limit 99 5
-
-script
-  cd /home/ec2-user/build-your-own-radar
-  exec npm run dev >> /var/log/techradar.log 2>&1
-end script
-```
-
-You should then be able to start and stop the application using upstart e.g.:
-
-```
-sudo start techradar
-sudo stop techradar
-sudo restart techradar
-```
-
-### Re-deploying the application on AWS
-
-To re-deploy the app you will need to log onto the EC2 instance on which the TechRadar app is deployed. To do this you'll need a copy of the SSH key. This is available from the PSDDO leadership team who store it in a secure area of Confluence.
-
-You'll also need to ensure that you are connected to a network that has SSH access to the EC2 instance. The EC2 instance sits inside a protected web DMZ security group that limits access to known IP address. The outbound IP addresses of certain Capgemini offices and the Capgemini corp VPN are included in the white list.
-
-Next, ensure the correct permissions on the key file and then SSH into the EC2 instance:
-
-```
-chmod 400 ToolingEC2Key.pem
-ssh -i "ToolingEC2Key.pem" ec2-user@ec2-35-177-235-50.eu-west-2.compute.amazonaws.com
-```
-
-Note: the EC2 instance's public DNS in the above command is correct at time of writing. The PSDDO leadership team have access to the AWS console and can provide the latest details if this changes.
-
-To re-deploy the app simply pull the latest code from GitHub and restart the TechRadar's OS service:
-
-```
-cd build-your-own-radar
-git pull
-sudo restart techradar
-```
-
-Finally validate that the TechRadar is running correctly with the updates at: http://techradar.capgemini-psdu.com/
+Finally validate that the TechRadar is running correctly by checkign for updates at: http://techradar.capgemini-psdu.com/
