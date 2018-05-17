@@ -11,8 +11,6 @@ function MDToBlipWebpackPlugin(options) {
 MDToBlipWebpackPlugin.prototype.apply = function (compiler) {
     //now you have access to all the compiler instance methods
     compiler.plugin('emit', function (compilation, callback) {
-        console.log(marked('I am using __markdown__.'));
-
         const testFolder = path.join(compiler.context,this.folder);
 
         var blips = [];
